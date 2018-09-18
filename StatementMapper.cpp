@@ -4,6 +4,7 @@
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/Analysis/LoopInfo.h"
+#include "llvm/Support/Casting.h"
 #include <bits/stdc++.h>
 
 using namespace llvm;
@@ -20,46 +21,79 @@ namespace{
         }
 
         bool runOnFunction(Function &F) {
-            std::vector<int> lNo;
-            const char* opName = "add";
-            int localLineNo;
+            std::vector<int> lineNos;
+            std::map<int, std::vector<Instruction*>> InstMap;
+            std::map<StringRef, Instruction*> AllocaInstMap;
 
-            LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+            std::map<int, std::vector<Instruction*>> LineAllocaInstMap;
 
-            for (Loop *L : LI){
-                dbgs() << L->getCanonicalInductionVariable()->getName() << "\n";
-            }
+            // LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+
+            // for (Loop *L : LI){
+            //     dbgs() << L->getCanonicalInductionVariable() << "\n";
+            // }
 
             
             for (BasicBlock &BB : F) {
                 for (Instruction &I : BB) {
                     if (DILocation *Loc = I.getDebugLoc()) {
-                        // dbgs() << I.getOpcodeName() << "\n";
-                        if (!strcmp(I.getOpcodeName(), opName)) { // Here I is an LLVM instruction
-                            // dbgs() << "Matched!" << "\n";
-                            unsigned Line = Loc->getLine();
-                            lNo.push_back(Line);
+                        if (isa<BinaryOperator>(I)) { 
+                            // Here I is an LLVM instruction
+                            lineNos.push_back(Loc->getLine());
+                        }
+                    }
+                    if(isa<AllocaInst>(I)) {
+                        Instruction *paramI = &I;
+                        AllocaInstMap[I.getName()] = paramI;
+                    }
+                }
+            }
+
+            for (BasicBlock &BB : F) {
+                for (Instruction &I : BB) {
+                    if (DILocation *Loc = I.getDebugLoc()) {
+                        for(int i=0; i<(int)lineNos.size(); i++) {
+                            if((int)Loc->getLine() == lineNos[i]) {
+                                Instruction *paramI = &I;
+                                InstMap[Loc->getLine()].push_back(paramI);
+                            }
                         }
                     }
                 }
             }
 
-            while(!lNo.empty()) {
-                localLineNo = lNo.back();
-                lNo.pop_back();
-                dbgs() << "Statement=" << localLineNo << "{" << "\n";
-                for (BasicBlock &BB : F) {
-                    for (Instruction &I : BB) {
-                        // Here I is an LLVM instruction
-                        if (DILocation *Loc = I.getDebugLoc()) {
-                            unsigned Line = Loc->getLine();
-                            if(Line == (unsigned)localLineNo) {
-                                dbgs() << I << "\n";
+            for(auto elem : InstMap) {
+                for(int i=0; i<(int)elem.second.size(); i++) {
+                    /*
+                    Iterate over all the variables of the instruction
+                    and add the alloca for them
+                    */
+
+                    // n is the number of variables in the instruction
+                    int n = elem.second[i]->getNumOperands();
+                    for(int j=0; j<n; j++) {
+                        if(AllocaInstMap.find(elem.second[i]->getOperand(j)->getName()) != AllocaInstMap.end()) {
+                            Instruction *paramI = AllocaInstMap[elem.second[i]->getOperand(j)->getName()];
+                            if(std::find(LineAllocaInstMap[elem.first].begin(), LineAllocaInstMap[elem.first].end(), paramI) == LineAllocaInstMap[elem.first].end()) {
+                                // Means 'paramI' is not present in the vector
+                                LineAllocaInstMap[elem.first].push_back(paramI);
                             }
                         }
                     }
                 }
+            }
 
+            for(auto elem : LineAllocaInstMap) {
+                for(int i=(int)elem.second.size() - 1; i>=0; i--) {
+                    InstMap[elem.first].insert(InstMap[elem.first].begin(), elem.second[i]);
+                }
+            }
+
+            for(auto elem : InstMap) {
+                dbgs() << "Statement=" << elem.first << "{" << "\n";
+                for(int i=0; i<(int)elem.second.size(); i++) {
+                    dbgs() << *elem.second[i] << "\n";
+                }
                 dbgs() << "}\n";
             }
 
