@@ -20,19 +20,16 @@ The following LLVM IR instructions should be printed :
 %6 = alloca i32 , align 4
 %29 = load i32 , i32 * %6 , align 4
 %30 = sext i32 %29 to i64
-%31 = getelementptr inbounds [100 x i32 ], [100 x i32 ]* %2 , ←-
-i64 0, i64 %30
+%31 = getelementptr inbounds [100 x i32 ], [100 x i32 ]* %2 , i64 0, i64 %30
 %32 = load i32 , i32 * %31 , align 4
 %33 = load i32 , i32 * %6 , align 4
 %34 = sext i32 %33 to i64
-%35 = getelementptr inbounds [100 x i32 ], [100 x i32 ]* %3 , ←-
-i64 0, i64 %34
+%35 = getelementptr inbounds [100 x i32 ], [100 x i32 ]* %3 , i64 0, i64 %34
 %36 = load i32 , i32 * %35 , align 4
 %37 = add nsw i32 %32 , %36
 %38 = load i32 , i32 * %6 , align 4
 %39 = sext i32 %38 to i64
-%40 = getelementptr inbounds [100 x i32 ], [100 x i32 ]* %4 , ←-
-i64 0, i64 %39
+%40 = getelementptr inbounds [100 x i32 ], [100 x i32 ]* %4 , i64 0, i64 %39
 store i32 %37 , i32 * %40 , align 4
 ```
 
