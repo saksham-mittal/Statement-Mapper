@@ -43,12 +43,14 @@ bool StatementMapper::SMapper::runOnFunction(Function &F) {
     int count;
     
     for (BasicBlock &BB : F) {
-        for (Instruction &I : BB) {
-            if(DILocation *Loc = I.getDebugLoc()) {
-                if(isa<StoreInst>(I)) {   
-                    count = (int)Loc->getLine();
-                    Instruction *paramI = &I;
-                    callUseDef(paramI, InstMap, AllocaInstMap, count);
+        if(!BB.getName().startswith("for.inc")) {
+            for (Instruction &I : BB) {
+                if(DILocation *Loc = I.getDebugLoc()) {
+                    if(isa<StoreInst>(I) || isa<ReturnInst>(I)) {
+                        count = (int)Loc->getLine();
+                        Instruction *paramI = &I;
+                        callUseDef(paramI, InstMap, AllocaInstMap, count);
+                    }
                 }
             }
         }
@@ -60,12 +62,22 @@ bool StatementMapper::SMapper::runOnFunction(Function &F) {
         }
     }
 
+    bool found;
     for(auto elem : InstMap) {
-        dbgs() << "Statement=" << elem.first << "{" << "\n";
+        found = false;
         for(int i=0; i<(int)elem.second.size(); i++) {
-            dbgs() << *elem.second[i] << "\n";
+            // Check if any instruction is a BinaryOperator instruction
+            if(isa<BinaryOperator>(elem.second[i])) {
+                found = true;
+            }
         }
-        dbgs() << "}\n";
+        if(found) {
+            dbgs() << "Statement=" << elem.first << "{" << "\n";
+            for(int i=0; i<(int)elem.second.size(); i++) {
+                dbgs() << *elem.second[i] << "\n";
+            }
+            dbgs() << "}\n";
+        }
     }
 
     return false;
