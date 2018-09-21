@@ -49,4 +49,19 @@ add_subdirectory(StatementMapper)
 * Run the make command : `make -j3 bin/./opt StatementMapper.so` (This generates the *.so* file)
 * Run the pass on LLVM IR code : `bin/./opt -load lib/StatementMapper.so -stmt-mapper test.ll`
 
+The directory structure followed is :
+```
+./
+|___llvm
+|   |___lib
+|   |   |___Transforms
+|   |       |___StatementMapper/
+|   |___include
+|       |___llvm
+|           |___Transforms
+|               |___StatementMapper/
+|___test/
+|___README
+``` 
+
 **NOTE : Change the appropriate paths according to your own system.**
