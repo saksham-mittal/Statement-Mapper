@@ -62,3 +62,23 @@ The directory structure followed is :
 ``` 
 
 **NOTE : Change the appropriate paths according to your own system.**
+
+## Design of code
+
+The basic idea used in the assignment, is to find the end of the arithmetic operation statement in the *.ll* file, and then traverse back till we have traversed all the required instructions. The end instruction is **store** instruction because we will need to store the arithmetic instruction result in some variable.
+
+We find the line number of the corresponding instruction using meta data information present in the *.ll* file, which is compiled using *-g* flag. Relevant information can be found at : [**Link**](https://llvm.org/docs/SourceLevelDebugging.html#object-lifetimes-and-scoping)
+
+The next challenge was to traverse back to the operand's instruction of the given store instruction. For this, we used def-use and use-def chains in recursion. Relevant information can be found at : [**Link**](http://llvm.org/docs/ProgrammersManual.html#iterating-over-def-use-use-def-chains)
+
+The instructions extracted from the use-def chains were iterated in a post-order traversal, to get the desired ouput format.
+
+Then, next problem was that some extra instructions were printed, like `i32 0`, `i64 1`. To prevent such instructions from printing, we used a simple check condition that the `getOpcodeName()` should not return `"<Invalid operator> "`.
+
+The next problem faced was **not** mapping the instructions for induction variables. For this we assumed that induction variables only comes in loops, so while traversing the basic block, the name of the basic block should not start with `"for.inc"`. This will prevent the induction variables from being mapped to llvm code.
+
+The next problem faced was to group the `alloca` intructions on the top, with induction variables allocation after the other variables allocation. This was solved using a `std::map` for the `alloca` instructions, which were detected using `isa<AllocaInst>`.
+
+The code also handles `fadd`, `fmul`... and other arithmetic instructions, which was handled by checking `isa<BinaryOperator>` and ending with store instruction.
+
+The other llvm instruction functions used in the code can be found at [**Link**](http://llvm.org/doxygen/classllvm_1_1Instruction.html)
